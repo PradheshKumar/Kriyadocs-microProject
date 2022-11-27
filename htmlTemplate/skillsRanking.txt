@@ -1,0 +1,46 @@
+<style>
+body{
+  text-align: center
+}
+.table{
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<body>
+<h1>TOP 10 MOST NEEDED SKILLS</h1>
+  <table class="table">
+    <tr>
+      <th>Rank</th>
+      <th>Skill</th>
+      <th>Required By</th>
+    </tr>
+    ${REPLACE}
+  </table>
+  <button class="viewMore"><h1 >View All</h1></button><br>
+  <a href="/">RETURN HOME </a>
+  <script>
+          const skills = ${SkillsReplace};
+          const table = document.querySelector(".table");
+          let view=true;
+          const viewMoreBtn = document.querySelector(".viewMore")
+          viewMoreBtn.addEventListener("click", () => {
+            view=!view;
+               table.innerHTML =
+                "<tr><th>Rank</th><th>Skill</th><th>Required By</th></tr>";
+           
+            const skillsSorted = Object.entries(skills).sort(function (a, b) {  return b[1] - a[1]; });
+            if(view)viewMoreBtn.innerHTML ='<h1 >View Top 10</h1>' 
+            else viewMoreBtn.innerHTML ='<h1 >View All</h1>' 
+        for (el in skillsSorted)
+        { console.log((parseInt(el)<10 && !view)|| view)
+          if((parseInt(el)<10 && !view)|| view)
+          table.innerHTML +=
+                 `<tr><td>${parseInt(el)+1}</td><td>${skillsSorted[el][0]}</td><td>${
+                  skillsSorted[el][1]
+                }</td></tr>`;}
+   
+
+          });
+  </script>
+</body>

@@ -4,6 +4,7 @@ const cheerio = require("cheerio");
 const fs = require("fs");
 const request = require("request");
 const { url } = require("inspector");
+const { EOL } = require("os");
 const hostname = "127.0.0.1";
 const port = 3000;
 const puncRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()0-9]/g; //Punctuation Regular Expression
@@ -175,12 +176,13 @@ const scratchClass =
 const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html");
-  if (req.url == "/") {
-    // Home Page Url
-    homePage(req, res);
-  } else if (req.url == "/skills") {
+  if (req.url.includes("?reload=true")) {
+    reloadJobs(req, res);
+  } else if (req.url == "/rankSkills") {
     //skills Page Url
-    skillsExtraction(req, res);
+    skillRanking(res);
+  } else if (req.url == "/") {
+    homePage(res);
   }
 });
 
@@ -188,7 +190,7 @@ server.listen(port, hostname, () => {
   console.log(`Server running at PORT ${port}`);
 });
 
-const homePage = (req, res) => {
+function reloadJobs(req, res) {
   fs.writeFileSync("jobs.txt", "Fetching...."); //Creating a new file or clearing Existing file
   request(
     "https://www.freshersworld.com/jobs", // Website being scraped -- https://www.freshersworld.com/jobs
@@ -204,10 +206,10 @@ const homePage = (req, res) => {
   );
   res.write(
     //Initial response to client
-    "<div class='a'><h1>Data is being Scraped , Please Wait...</h1></div>"
+    fs.readFileSync("./htmlTemplate/scrapingPage.txt")
   );
-};
-const jobDescription = (link, res) => {
+}
+function jobDescription(link, res) {
   request(link, function (error, response, body) {
     const $ = cheerio.load(body);
     let content = $(".content_left.col-xs-12.about_comp").text().toString(); //Details of the job scraped from the website
@@ -215,9 +217,11 @@ const jobDescription = (link, res) => {
       j--;
       if (j < i) {
         fs.writeFileSync("jobs.txt", jobData.join(" "));
-        res.end(
-          "<script>document.children[0].children[1].innerHTML='<h1><a href=/skills>Check Skills</a></h1>';</script>"
-        ); //Modified Job Description added to the text file
+        skillsExtraction(res);
+
+        // res.end(
+        //   "<script>document.children[0].children[1].innerHTML='<h1><a href=/skills>Check Skills</a></h1>';</script>"
+        // ); //Modified Job Description added to the text file
         return;
       } else return;
     }
@@ -226,16 +230,70 @@ const jobDescription = (link, res) => {
     content = content.replaceAll(stopNoiseRegex, ""); //Removes the punctuations,stop words and noise words
     jobData.push(content + "\n");
   });
-};
+}
 
-const skillsExtraction = (req, res) => {
-  res.end("<a href='/'>Home Page</a> ");
+function skillsExtraction(res) {
   const jobsText = fs.readFileSync("jobs.txt"); //reads all texts from the jobs text file
   let skills = [
     ...jobsText
       .toString()
       .match(new RegExp(`\\b(${skillsDict.join("|")})\\b`, "gi")), // Extracts the skills from text
   ];
-  console.log(skills);
-  fs.writeFileSync("skills.txt", skills.join(" ").toLowerCase()); //Writes the skills in a new file
-};
+
+  const skillsJSON = findDuplicateCount(skills);
+  fs.writeFileSync("skills.json", JSON.stringify(skillsJSON)); //Writes the skills and their number of repetition in a new file in JSON format
+  res.write("<script>window.location.href='/'</script>");
+}
+function homePage(res) {
+  const homePageTemp = fs
+    .readFileSync("./htmlTemplate/homePage.txt")
+    .toString();
+  const skills = Object.keys(JSON.parse(fs.readFileSync("./skills.json")));
+  const markup = homePageTemp.replaceAll(
+    "${REPLACE}",
+    skills.map((el) => `<li>${el}</li>`).join("\n")
+  );
+  res.end(markup);
+}
+
+function skillRanking(res) {
+  const rankingTemp = fs
+    .readFileSync("./htmlTemplate/skillsRanking.txt")
+    .toString();
+  const skills = Object.entries(
+    JSON.parse(fs.readFileSync("./skills.json"))
+  ).sort(function (a, b) {
+    return b[1] - a[1];
+  });
+  const markup = rankingTemp
+    .replace(
+      "${REPLACE}",
+      skills
+        .map((el, i) => {
+          if (i < 10)
+            return `<tr><td>${i + 1}</td><td>${el[0]}</td><td>${
+              el[1]
+            }</td></tr>`;
+        })
+        .join(" ")
+    )
+    .replace("${SkillsReplace}", fs.readFileSync("./skills.json"));
+
+  res.end(markup);
+}
+
+function findDuplicateCount(array) {
+  const count = {};
+  array = array
+    .map((el) => el.toLowerCase()) //To find Duplicate with case sensitivity
+    .map((el) => el[0].toUpperCase() + el.slice(1));
+
+  array.forEach((el) => {
+    if (count[el]) {
+      count[el] += 1;
+      return;
+    }
+    count[el] = 1;
+  });
+  return count;
+}
