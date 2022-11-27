@@ -1,0 +1,97 @@
+<style>
+  body {
+    background-color: #ece7e7;
+    text-align: center;
+  }
+  a {
+    cursor: pointer;
+    margin: 30px;
+    background-color: #3389ca;
+    border: 1px solid #ff9205;
+    border-radius: 14px;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    color: #ffffff;
+    display: inline-block;
+    font-family: sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 50px;
+    text-align: center;
+    text-decoration: none;
+    width: 200px;
+    -webkit-text-size-adjust: none;
+    mso-hide: all;
+  }
+  .table {
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    width: 50%;
+    background-color: #ffffff;
+    border-collapse: collapse;
+    border-width: 6px;
+    border-color: #faebd7;
+    border-style: double;
+    color: #704949;
+    max-height: 0px;
+  }
+  .table .active {
+    max-height: 400px;
+  }
+  .table th,
+  .table td {
+    border-width: 6px;
+    border-color: #faebd7;
+    border-style: double;
+    padding: 5px;
+  }
+  .table thead {
+    background-color: antiquewhite;
+  }
+</style>
+<body>
+  <h1 class="headTxt">TOP 10 MOST NEEDED SKILLS</h1>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Skill</th>
+        <th>Needed By</th>
+      </tr>
+    </thead>
+    ${REPLACE}
+  </table>
+  <a class="viewMore"><h3>View All</h3></a><br />
+  <a href="/">RETURN HOME </a>
+  <script>
+    const skills = { SkillsReplace };
+    const table = document.querySelector(".table");
+    const headTxt = document.querySelector(".headTxt");
+    let view = true;
+    const viewMoreBtn = document.querySelector(".viewMore");
+    viewMoreBtn.addEventListener("click", () => {
+      table.innerHTML =
+        "<thead><tr><th>Rank</th><th>Skill</th><th>Needed By</th></tr></thead>";
+
+      const skillsSorted = Object.entries(skills).sort(function (a, b) {
+        return b[1] - a[1];
+      });
+      if (view) {
+        headTxt.innerHTML = "TOP MOST NEEDED SKILLS";
+        viewMoreBtn.innerHTML = "<h3 >View Top 10</h3>";
+      } else {
+        headTxt.innerHTML = "TOP 10 MOST NEEDED SKILLS";
+        viewMoreBtn.innerHTML = "<h3 >View All</h3>";
+      }
+      for (el in skillsSorted) {
+        console.log((parseInt(el) < 10 && !view) || view);
+        if ((parseInt(el) < 10 && !view) || view)
+          table.innerHTML += `<tr><td>${parseInt(el) + 1}</td><td>${
+            skillsSorted[el][0]
+          }</td><td>${skillsSorted[el][1]}</td></tr>`;
+      }
+      view = !view;
+    });
+  </script>
+</body>

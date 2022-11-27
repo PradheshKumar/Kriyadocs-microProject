@@ -1,0 +1,54 @@
+<style>
+  body {
+    background-color: #ece7e7;
+    padding: 200px;
+    text-align: center;
+  }
+  .iconRotate img {
+    width: 10%;
+    animation: yourAnimation 15s linear 0s infinite normal none;
+    object-position: 100% 0;
+  }
+  @keyframes yourAnimation {
+    0% {
+      transform: rotate(0deg);
+    }
+    50% {
+      transform: rotate(180deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+<body>
+  <h1>Data is being Scraped , Please Wait...</h1>
+  <div class="iconRotate">
+    <img
+      src="https://drive.google.com/uc?export=view&id=1VAvdYXvotw8YGJdt9kLM5DiHTezmTdaF"
+    />
+  </div>
+  <p id="timer">Usually It Takes Around 25 Seconds <br /></p>
+  <h4>You will be Redirected once Finished</h4>
+</body>
+<script>
+  function countdown() {
+    var seconds = 25;
+    function tick() {
+      var counter = document.getElementById("timer");
+      seconds--;
+      counter.innerHTML =
+        "Usually It Takes Around 25 Seconds <br/>" +
+        String(seconds) +
+        "  seconds remaining";
+      if (seconds > 0) {
+        setTimeout(tick, 1000);
+      } else {
+        counter.innerHTML =
+          "Sorry it is taking More Than Expected Time.. Please Wait";
+      }
+    }
+    tick();
+  }
+  countdown();
+</script>

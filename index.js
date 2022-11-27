@@ -3,8 +3,6 @@ const https = require("https");
 const cheerio = require("cheerio");
 const fs = require("fs");
 const request = require("request");
-const { url } = require("inspector");
-const { EOL } = require("os");
 const hostname = "127.0.0.1";
 const port = 3000;
 const puncRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()0-9]/g; //Punctuation Regular Expression
@@ -206,7 +204,7 @@ function reloadJobs(req, res) {
   );
   res.write(
     //Initial response to client
-    fs.readFileSync("./htmlTemplate/scrapingPage.txt")
+    fs.readFileSync("./htmlTemplate/scrapingPage.html")
   );
 }
 function jobDescription(link, res) {
@@ -246,7 +244,7 @@ function skillsExtraction(res) {
 }
 function homePage(res) {
   const homePageTemp = fs
-    .readFileSync("./htmlTemplate/homePage.txt")
+    .readFileSync("./htmlTemplate/homePage.html")
     .toString();
   const skills = Object.keys(JSON.parse(fs.readFileSync("./skills.json")));
   const markup = homePageTemp.replaceAll(
@@ -258,7 +256,7 @@ function homePage(res) {
 
 function skillRanking(res) {
   const rankingTemp = fs
-    .readFileSync("./htmlTemplate/skillsRanking.txt")
+    .readFileSync("./htmlTemplate/skillsRanking.html")
     .toString();
   const skills = Object.entries(
     JSON.parse(fs.readFileSync("./skills.json"))
@@ -277,7 +275,7 @@ function skillRanking(res) {
         })
         .join(" ")
     )
-    .replace("${SkillsReplace}", fs.readFileSync("./skills.json"));
+    .replace("{ SkillsReplace }", fs.readFileSync("./skills.json"));
 
   res.end(markup);
 }
