@@ -1,5 +1,4 @@
 const http = require("http");
-const https = require("https");
 const cheerio = require("cheerio");
 const fs = require("fs");
 const request = require("request");
@@ -131,7 +130,6 @@ const stopAndNoiseWords = [
   "your",
 ]; // Array of Stop Words and Noise Words
 let jobData = [],
-  i = 1,
   j = 0;
 const skillsDict = [
   "Java",
@@ -175,11 +173,12 @@ const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html");
   if (req.url.includes("?reload=true")) {
-    reloadJobs(req, res);
+    reloadJobs(res); //Refresh Scrapped Details
   } else if (req.url == "/rankSkills") {
-    //skills Page Url
+    //Ranking Skills Page Response
     skillRanking(res);
   } else if (req.url == "/") {
+    //Home Page Response
     homePage(res);
   }
 });
@@ -188,7 +187,7 @@ server.listen(port, hostname, () => {
   console.log(`Server running at PORT ${port}`);
 });
 
-function reloadJobs(req, res) {
+function reloadJobs(res) {
   fs.writeFileSync("jobs.txt", "Fetching...."); //Creating a new file or clearing Existing file
   request(
     "https://www.freshersworld.com/jobs", // Website being scraped -- https://www.freshersworld.com/jobs
@@ -196,8 +195,9 @@ function reloadJobs(req, res) {
       const $ = cheerio.load(body); //body has the html code of the website
       if (j == 0) j = $(scratchClass).length;
       $(scratchClass).each((i, el) => {
-        if ($(el).find("a").attr("href")) {
-          jobDescription($(el).find("a").attr("href"), res); //Calling Function that scraps the links present in the current webpage
+        const link = $(el).find("a").attr("href");
+        if (link) {
+          jobDescription(link, res); //Calling Function that scraps the links present in the current webpage
         }
       });
     }
@@ -211,19 +211,18 @@ function jobDescription(link, res) {
   request(link, function (error, response, body) {
     const $ = cheerio.load(body);
     let content = $(".content_left.col-xs-12.about_comp").text().toString(); //Details of the job scraped from the website
-    if (content == "") {
-      j--;
-      if (j < i) {
-        fs.writeFileSync("jobs.txt", jobData.join(" "));
-        skillsExtraction(res);
 
-        // res.end(
-        //   "<script>document.children[0].children[1].innerHTML='<h1><a href=/skills>Check Skills</a></h1>';</script>"
-        // ); //Modified Job Description added to the text file
-        return;
-      } else return;
+    j--;
+    if (j <= 0) {
+      fs.writeFileSync("jobs.txt", jobData.join(" "));
+      skillsExtraction(res);
+
+      return;
     }
-    i++;
+    if (content == "") {
+      return;
+    }
+
     content = content.replaceAll(puncRegex, "");
     content = content.replaceAll(stopNoiseRegex, ""); //Removes the punctuations,stop words and noise words
     jobData.push(content + "\n");
@@ -243,6 +242,10 @@ function skillsExtraction(res) {
   res.write("<script>window.location.href='/'</script>");
 }
 function homePage(res) {
+  if (!fs.existsSync("./skills.json")) {
+    reloadJobs(res);
+    return;
+  }
   const homePageTemp = fs
     .readFileSync("./htmlTemplate/homePage.html")
     .toString();
@@ -255,6 +258,10 @@ function homePage(res) {
 }
 
 function skillRanking(res) {
+  if (!fs.existsSync("./skills.json")) {
+    reloadJobs(res);
+    return;
+  }
   const rankingTemp = fs
     .readFileSync("./htmlTemplate/skillsRanking.html")
     .toString();

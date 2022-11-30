@@ -84,8 +84,8 @@
         headTxt.innerHTML = "TOP 10 MOST NEEDED SKILLS";
         viewMoreBtn.innerHTML = "<h3 >View All</h3>";
       }
+      console.log(skillsSorted);
       for (el in skillsSorted) {
-        console.log((parseInt(el) < 10 && !view) || view);
         if ((parseInt(el) < 10 && !view) || view)
           table.innerHTML += `<tr><td>${parseInt(el) + 1}</td><td>${
             skillsSorted[el][0]
