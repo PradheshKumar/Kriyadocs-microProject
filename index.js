@@ -1,7 +1,6 @@
 const http = require("http");
-const cheerio = require("cheerio");
 const fs = require("fs");
-const request = require("request");
+const { loadCheerio } = require("./js/loadCheerio");
 const hostname = "127.0.0.1";
 const port = 3000;
 const puncRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()0-9]/g; //Punctuation Regular Expression
@@ -180,6 +179,8 @@ const server = http.createServer((req, res) => {
   } else if (req.url == "/") {
     //Home Page Response
     homePage(res);
+  } else {
+    res.end(fs.readFileSync("./htmlTemplate/404.html"));
   }
 });
 
@@ -188,30 +189,24 @@ server.listen(port, hostname, () => {
 });
 
 function reloadJobs(res) {
-  fs.writeFileSync("jobs.txt", "Fetching...."); //Creating a new file or clearing Existing file
-  request(
-    "https://www.freshersworld.com/jobs", // Website being scraped -- https://www.freshersworld.com/jobs
-    function (error, response, body) {
-      const $ = cheerio.load(body); //body has the html code of the website
-      if (j == 0) j = $(scratchClass).length;
-      $(scratchClass).each((i, el) => {
-        const link = $(el).find("a").attr("href");
-        if (link) {
-          jobDescription(link, res); //Calling Function that scraps the links present in the current webpage
-        }
-      });
-    }
-  );
+  fs.writeFileSync("jobs.txt", "Fetching...."); //Creating a new file or clearing Existing file// Website being scraped -- https://www.freshersworld.com/jobs
+  loadCheerio("https://www.freshersworld.com/jobs", ($) => {
+    if (j == 0) j = $(scratchClass).length;
+    $(scratchClass).each((i, el) => {
+      const link = $(el).find("a").attr("href");
+      if (link) {
+        jobDescription(link, res); //Calling Function that scraps the links present in the current webpage
+      }
+    });
+  });
   res.write(
     //Initial response to client
     fs.readFileSync("./htmlTemplate/scrapingPage.html")
   );
 }
 function jobDescription(link, res) {
-  request(link, function (error, response, body) {
-    const $ = cheerio.load(body);
+  loadCheerio(link, ($) => {
     let content = $(".content_left.col-xs-12.about_comp").text().toString(); //Details of the job scraped from the website
-
     j--;
     if (j <= 0) {
       fs.writeFileSync("jobs.txt", jobData.join(" "));
