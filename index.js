@@ -3,7 +3,7 @@ const fs = require("fs");
 const { loadCheerio } = require("./js/loadCheerio");
 const hostname = "127.0.0.1";
 const port = 3000;
-const puncRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()0-9]/g; //Punctuation Regular Expression
+const puncRegex = /[.,\/#!+$%\?^&\*;:{}=\-_`~()0-9]/g; //Punctuation Regular Expression
 const stopAndNoiseWords = [
   "a",
   "about",
@@ -138,6 +138,10 @@ const skillsDict = [
   "MongoDB",
   "NPM",
   "Redux",
+  "artificial intelligence",
+  "machine learning",
+  "data engineering",
+  "AI/ML",
   "Angular",
   "webdevelopment",
   "Javascript",
@@ -161,6 +165,7 @@ const skillsDict = [
   "nosql",
   "coding",
 ]; //Dictionary of Skills
+
 const stopNoiseRegex = new RegExp(
   `\\b(${stopAndNoiseWords.join("|")})\\b`, //Regular Expression for StopWords and Noise Words
   "gi"
@@ -179,6 +184,9 @@ const server = http.createServer((req, res) => {
   } else if (req.url == "/") {
     //Home Page Response
     homePage(res);
+  } else if (req.url.includes("/skills=")) {
+    //Home Page Response
+    jobLinkPage(req, res);
   } else {
     res.end(fs.readFileSync("./htmlTemplate/404.html"));
   }
@@ -189,7 +197,7 @@ server.listen(port, hostname, () => {
 });
 
 function reloadJobs(res) {
-  fs.writeFileSync("jobs.txt", "Fetching...."); //Creating a new file or clearing Existing file// Website being scraped -- https://www.freshersworld.com/jobs
+  deleteFiles(); //Delete Old Scrapped Files
   loadCheerio("https://www.freshersworld.com/jobs", ($) => {
     if (j == 0) j = $(scratchClass).length;
     $(scratchClass).each((i, el) => {
@@ -207,9 +215,25 @@ function reloadJobs(res) {
 function jobDescription(link, res) {
   loadCheerio(link, ($) => {
     let content = $(".content_left.col-xs-12.about_comp").text().toString(); //Details of the job scraped from the website
+    if (content == "") content = $(".job-detail-section").text().toString();
+    let role = $(".job-role").text(); //Getting Role for the job
+    if (role == "") {
+      role = $(".cname_mob").text() + " at " + $(".cname").find("h1").text();
+    } else {
+      role += "at" + $(".company-name").first().text(); //Adding Company Name
+    }
+    let location = $(".job-title").text().split(" at ")[1];
+    if (!location) {
+      location = $(".job-location").text(); //Find Location of Job
+    }
+    if (location.trim() == "") location = "Unavailable";
+
     j--;
     if (j <= 0) {
-      fs.writeFileSync("jobs.txt", jobData.join(" "));
+      fs.writeFileSync(
+        "jobs.txt",
+        jobData.join(" ").replaceAll("\t", " ").replaceAll("\n", " ") + "\n"
+      );
       skillsExtraction(res);
 
       return;
@@ -220,21 +244,119 @@ function jobDescription(link, res) {
 
     content = content.replaceAll(puncRegex, "");
     content = content.replaceAll(stopNoiseRegex, ""); //Removes the punctuations,stop words and noise words
-    jobData.push(content + "\n");
+    jobData.push(content + "$" + role + "@" + link + "@" + location + "+");
   });
 }
 
 function skillsExtraction(res) {
-  const jobsText = fs.readFileSync("jobs.txt"); //reads all texts from the jobs text file
+  let jobsText = fs.readFileSync("jobs.txt").toString(); //reads all texts from the jobs text file
+  jobsText.split("+").forEach((el) => {
+    addSKillLink(el.split("$")[0], el.split("$")[1]); //Adds Jobs Link that require the skills
+  });
+  countSkills();
+  jobsText = jobsText
+    .split("+")
+    .map((el) => [...new Set(el.toLowerCase().split(" "))].join(" "))
+    .join("+");
+
   let skills = [
-    ...jobsText
-      .toString()
-      .match(new RegExp(`\\b(${skillsDict.join("|")})\\b`, "gi")), // Extracts the skills from text
+    ...jobsText.match(new RegExp(`\\b(${skillsDict.join("|")})\\b`, "gi")), // Extracts the skills from text
   ];
 
-  const skillsJSON = findDuplicateCount(skills);
-  fs.writeFileSync("skills.json", JSON.stringify(skillsJSON)); //Writes the skills and their number of repetition in a new file in JSON format
   res.write("<script>window.location.href='/'</script>");
+}
+function countSkills() {
+  fs.readdirSync("skillsLink").forEach((el) => {
+    let skill = el.split(".txt")[0]; // Extracting Skill Name
+    if (skill.length == 2) {
+      skill = skill.toUpperCase();
+    } else skill = skill[0].toUpperCase() + skill.slice(1); // converting First Letter to CAPS
+    const count =
+      fs
+        .readFileSync("./skillsLink/" + el)
+        .toString()
+        .split("\n").length - 1;
+    const skillJson = fs.existsSync("./skills.json")
+      ? JSON.parse(fs.readFileSync("./skills.json"))
+      : {};
+    skillJson[skill] = count;
+    fs.writeFileSync("./skills.json", JSON.stringify(skillJson));
+  });
+}
+function addSKillLink(text, link) {
+  const skills = text.match(
+    new RegExp(`\\b(${skillsDict.join("|")})\\b`, "gi")
+  );
+  if (!skills) return;
+
+  skills.forEach((el) => {
+    let fileDir = "skillsLink/" + el.toLowerCase().split(" ").join("") + ".txt";
+    if (
+      //If Link Present Returns
+      fs.existsSync(fileDir)
+        ? fs.readFileSync(fileDir).toString().includes(link)
+        : false
+    )
+      return;
+    fs.appendFileSync(fileDir, link + "\n");
+  });
+}
+
+function deleteFiles() {
+  fs.readdir("skillsLink", (err, files) => {
+    if (err) throw err;
+
+    for (const file of files) {
+      fs.unlinkSync("skillsLink/" + file);
+    }
+  }); //Deletes all Files in skillsLink Directory
+  if (fs.existsSync("jobs.txt")) fs.unlinkSync("jobs.txt");
+  if (fs.existsSync("skills.json")) fs.unlinkSync("skills.json");
+}
+
+function skillRanking(res) {
+  if (!fs.existsSync("./skills.json")) {
+    reloadJobs(res);
+    return;
+  }
+  const rankingTemp = fs
+    .readFileSync("./htmlTemplate/skillsRanking.html")
+    .toString();
+  const skills = Object.entries(
+    JSON.parse(fs.readFileSync("./skills.json"))
+  ).sort(function (a, b) {
+    return b[1] - a[1];
+  });
+
+  const markup = rankingTemp
+    .replace(
+      "${REPLACE}",
+      skills
+        .map((el, i) => {
+          if (i < 10)
+            return `<tr><td>${i + 1}</td><td>${el[0]}</td><td>${
+              el[1]
+            }</td><td><a class="skillLinkButton" href="/skills=${el[0].toLowerCase()}">Click Here</a></td></tr>`;
+        })
+        .join(" ")
+    )
+    .replace("{ SkillsReplace }", fs.readFileSync("./skills.json"));
+
+  res.end(markup);
+}
+
+function findDuplicateCount(array) {
+  const count = {};
+  array = array.map((el) => el[0].toUpperCase() + el.slice(1));
+
+  array.forEach((el) => {
+    if (count[el]) {
+      count[el] += 1;
+      return;
+    }
+    count[el] = 1;
+  });
+  return count;
 }
 function homePage(res) {
   if (!fs.existsSync("./skills.json")) {
@@ -251,49 +373,37 @@ function homePage(res) {
   );
   res.end(markup);
 }
-
-function skillRanking(res) {
-  if (!fs.existsSync("./skills.json")) {
-    reloadJobs(res);
-    return;
-  }
-  const rankingTemp = fs
-    .readFileSync("./htmlTemplate/skillsRanking.html")
+function jobLinkPage(req, res) {
+  const pageTemplate = fs
+    .readFileSync("./htmlTemplate/jobsLink.html")
     .toString();
-  const skills = Object.entries(
-    JSON.parse(fs.readFileSync("./skills.json"))
-  ).sort(function (a, b) {
-    return b[1] - a[1];
-  });
-  const markup = rankingTemp
-    .replace(
-      "${REPLACE}",
-      skills
-        .map((el, i) => {
-          if (i < 10)
-            return `<tr><td>${i + 1}</td><td>${el[0]}</td><td>${
-              el[1]
-            }</td></tr>`;
-        })
-        .join(" ")
+  const skills = fs
+    .readFileSync(
+      "./skillsLink/" + req.url.split("=")[1].split("%20").join("") + ".txt"
     )
-    .replace("{ SkillsReplace }", fs.readFileSync("./skills.json"));
-
+    .toString()
+    .split("\n");
+  let markup = pageTemplate.replace(
+    "${REPLACE}",
+    skills
+      .map((el, i) => {
+        if (el)
+          return `<tr><td>${el.split(" at ")[0]}</td><td>${
+            el.split(" at ")[1]?.split("@")[0]
+          }</td><td>${
+            el.split("@")[2]
+          }</td><td><a target="_blank" class="skillLinkButton" href="${
+            el.split("@")[1]
+          }">Click Here</a></td></tr>`;
+      })
+      .join(" ")
+  );
+  markup = markup.replaceAll(
+    "${TITLE}",
+    req.url.split("=")[1].split("%20").join(" ").toUpperCase()
+  );
+  // return `<tr><td>${i + 1}</td><td>${el[0]}</td><td>${
+  //   el[1]
+  // }</td><td><a class="skillLinkButton" href="/skills=${el[0].toLowerCase()}">Click Here</a></td></tr>`;
   res.end(markup);
-}
-
-function findDuplicateCount(array) {
-  const count = {};
-  array = array
-    .map((el) => el.toLowerCase()) //To find Duplicate with case sensitivity
-    .map((el) => el[0].toUpperCase() + el.slice(1));
-
-  array.forEach((el) => {
-    if (count[el]) {
-      count[el] += 1;
-      return;
-    }
-    count[el] = 1;
-  });
-  return count;
 }

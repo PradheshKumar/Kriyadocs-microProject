@@ -1,5 +1,5 @@
 <head>
-  <title>Skills Rank</title>
+  <title>${TITLE}</title>
 </head>
 <style>
   body {
@@ -74,51 +74,18 @@
   }
 </style>
 <body>
-  <h1 class="headTxt">TOP 10 MOST NEEDED SKILLS</h1>
+  <h1 class="headTxt">${TITLE}</h1>
   <table class="table">
     <thead>
       <tr>
-        <th>Rank</th>
-        <th>Skill</th>
-        <th>Needed By</th>
-        <th>Available Jobs</th>
+        <th>Role</th>
+        <th>Company Name</th>
+        <th>Location</th>
+        <th>Link</th>
       </tr>
     </thead>
     ${REPLACE}
   </table>
-  <a class="viewMore"><h3>View All</h3></a><br />
+  <a href="/rankSkills">GO BACK </a>
   <a href="/">RETURN HOME </a>
-  <script>
-    const skills = { SkillsReplace };
-    const table = document.querySelector(".table");
-    const headTxt = document.querySelector(".headTxt");
-    let view = true;
-    const viewMoreBtn = document.querySelector(".viewMore");
-    viewMoreBtn.addEventListener("click", () => {
-      table.innerHTML =
-        "<thead><tr><th>Rank</th><th>Skill</th><th>Needed By</th><th>Available Jobs</th></tr></thead>";
-
-      const skillsSorted = Object.entries(skills).sort(function (a, b) {
-        return b[1] - a[1];
-      });
-      if (view) {
-        headTxt.innerHTML = "TOP MOST NEEDED SKILLS";
-        viewMoreBtn.innerHTML = "<h3 >View Top 10</h3>";
-      } else {
-        headTxt.innerHTML = "TOP 10 MOST NEEDED SKILLS";
-        viewMoreBtn.innerHTML = "<h3 >View All</h3>";
-      }
-      for (el in skillsSorted) {
-        if ((parseInt(el) < 10 && !view) || view)
-          table.innerHTML += `<tr><td>${parseInt(el) + 1}</td><td>${
-            skillsSorted[el][0]
-          }</td><td>${
-            skillsSorted[el][1]
-          }</td><td><a class="skillLinkButton" href="/skills=${skillsSorted[
-            el
-          ][0].toLowerCase()}">Click Here</a></td></tr>`;
-      }
-      view = !view;
-    });
-  </script>
 </body>

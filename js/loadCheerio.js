@@ -1,11 +1,19 @@
 const request = require("request");
 const cheerio = require("cheerio");
-function loadCheerio(link, callBack) {
-  request(link, function (error, response, body) {
-    //body has the html code of the website
-    const $ = cheerio.load(body);
+const got = require("got");
 
-    callBack($);
-  });
+function loadCheerio(link, callBack) {
+  got(link)
+    .then((result) => {
+      const $ = cheerio.load(result.body);
+      callBack($);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  // request(link, function (error, response, body) {
+  //   //body has the html code of the website
+
+  // });
 }
 module.exports = { loadCheerio };
