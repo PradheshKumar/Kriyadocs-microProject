@@ -1,10 +1,10 @@
 const fs = require("fs");
 const { loadCheerio } = require("./loadCheerio");
 const { skillsExtraction } = require("./skillExtraction");
-const scratchClass =
+const scrapClass =
   ".col-md-12.col-lg-12.col-xs-12.padding-none.job-container.jobs-on-hover"; //Class to be searched in the website to scrap
-let totalLeft = 0; //Total Number of Sites Yet to be scraped
-const puncRegex = /[.,\/#!+$%\?^&\*;:{}=\-_`~()0-9]/g; //Punctuation Regular Expression
+let totalLeft; //Total Number of Sites Yet to be scraped
+const puncRegex = /[.,\/#!+$%\?^&\*;:{}=\-_`~()0-9]/g; // Regular Expression for Punctuations
 const stopAndNoiseWords = [
   "a",
   "about",
@@ -128,18 +128,18 @@ const stopAndNoiseWords = [
   "would",
   "you",
   "your",
-]; // Array of Stop Words and Noise Words
+]; // Array of Stop and Noise Words
 
 const stopNoiseRegex = new RegExp(
   `\\b(${stopAndNoiseWords.join("|")})\\b`, //Regular Expression for StopWords and Noise Words
   "gi"
 );
-let jobData = []; //Scraped Data about a Job is Stored
+let jobData = []; //For storing Scraped Data
 function reloadJobs(res) {
   deleteFiles(); //Delete Old Scrapped Files
   loadCheerio("https://www.freshersworld.com/jobs", ($) => {
-    if (totalLeft == 0) totalLeft = $(scratchClass).length;
-    $(scratchClass).each((i, el) => {
+    totalLeft = $(scrapClass).length;
+    $(scrapClass).each((i, el) => {
       const link = $(el).find("a").attr("href");
       if (link) {
         jobDescription(link, res); //Calling Function that scraps the links present in the current webpage
@@ -161,9 +161,9 @@ function jobDescription(link, res) {
     } else {
       role += "at" + $(".company-name").first().text(); //Adding Company Name
     }
-    let location = $(".job-title").text().split(" at ")[1];
+    let location = $(".job-title").text().split(" at ")[1]; //Find Location of Job
     if (!location) {
-      location = $(".job-location").text(); //Find Location of Job
+      location = $(".job-location").text();
     }
     if (location.trim() == "") location = "Unavailable";
 
@@ -171,7 +171,7 @@ function jobDescription(link, res) {
     if (totalLeft <= 0) {
       fs.writeFileSync(
         "jobs.txt",
-        jobData.join(" ").replaceAll("\t", " ").replaceAll("\n", " ") + "\n"
+        jobData.join(" ").replaceAll("\t", " ").replaceAll("\n", " ")
       );
       skillsExtraction(res);
 

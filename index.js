@@ -11,7 +11,7 @@ const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html");
   if (req.url.includes("?reload=true")) {
-    reloadJobs(res); //Refresh Scrapped Details
+    reloadJobs(res); //Scrapping The Jobs
   } else if (req.url == "/rankSkills") {
     //Ranking Skills Page Response
     skillRanking(res);

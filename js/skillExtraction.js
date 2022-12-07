@@ -73,7 +73,7 @@ function countSkills() {
 }
 function addSKillLink(text, link) {
   const skills = text.match(
-    new RegExp(`\\b(${skillsDict.join("|")})\\b`, "gi")
+    new RegExp(`\\b(${skillsDict.join("|")})\\b`, "gi") //Skills are extracted from The Job Detail
   );
   if (!skills) return;
 
